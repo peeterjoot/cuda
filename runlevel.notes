@@ -1,0 +1,5 @@
+telinit 5
+sudo systemctl set-default graphical.target
+
+telinit 3
+sudo systemctl set-default multi-user.target

@@ -1,0 +1,71 @@
+#S=sudo
+wget https://developer.download.nvidia.com/compute/cuda/11.3.1/local_installers/cuda-repo-fedora33-11-3-local-11.3.1_465.19.01-1.x86_64.rpm
+sudo rpm -i cuda-repo-fedora33-11-3-local-11.3.1_465.19.01-1.x86_64.rpm
+sudo dnf clean all
+sudo dnf -y module install nvidia-driver:latest-dkms
+sudo dnf -y install cuda
+
+https://forums.developer.nvidia.com/t/installing-cuda-sdk-and-configuring-driver-on-fedora-34/180228
+
+
+alternate instructions:
+
+https://www.if-not-true-then-false.com/2015/fedora-nvidia-guide/
+
+dnf install kernel-devel kernel-headers gcc make dkms acpid libglvnd-glx libglvnd-opengl libglvnd-devel pkgconfig
+
+
+I’ve installed the cuda sdk on Fedora 34 (x86_64). Fedora 34 wasn’t in the installation options, but I selected fedora 33, and installed like so:
+
+wget https://developer.download.nvidia.com/compute/cuda/11.3.1/local_installers/cuda-repo-fedora33-11-3-local-11.3.1_465.19.01-1.x86_64.rpm
+sudo rpm -i cuda-repo-fedora33-11-3-local-11.3.1_465.19.01-1.x86_64.rpm
+sudo dnf clean all
+sudo dnf -y module install nvidia-driver:latest-dkms
+sudo dnf -y install cuda
+
+The sample makes complained about gcc-11, the fedora default, so I built and installed a local version of gcc-10, put that in my $PATH, and tried one of the cuda samples:
+
+matrixMul> ./matrixMul
+[Matrix Multiply Using CUDA] - Starting…
+CUDA error at …/…/common/inc/helper_cuda.h:779 code=100(cudaErrorNoDevice) “cudaGetDeviceCount(&device_count)”
+
+I understand to be an issue with the driver not running properly.
+
+nvidia-smi shows:
+
+NVIDIA-SMI has failed because it couldn’t communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+After some googling, I’ve blacklisted nouveau, ran dracut -f, and rebooted. After this dmesg shows:
+
+[root@fedora ~]# dmesg | grep -i nvidia
+[ 4.532840] nvidia-gpu 0000:01:00.3: enabling device (0000 → 0002)
+[ 5.022620] input: HDA NVidia HDMI/DP,pcm=3 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input14
+[ 5.022709] input: HDA NVidia HDMI/DP,pcm=7 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input15
+[ 5.022766] input: HDA NVidia HDMI/DP,pcm=8 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input16
+[ 5.022820] input: HDA NVidia HDMI/DP,pcm=9 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input17
+[ 5.022882] input: HDA NVidia HDMI/DP,pcm=10 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input18
+[ 5.022942] input: HDA NVidia HDMI/DP,pcm=11 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input19
+[ 5.889574] nvidia-gpu 0000:01:00.3: i2c timeout error e0000000
+
+At some level the nvidea gpu is detected, as I see:
+
+[root@fedora ~]# lspci -v | grep -i nvidia
+01:00.0 VGA compatible controller: NVIDIA Corporation TU116M [GeForce GTX 1660 Ti Mobile] (rev a1) (prog-if 00 [VGA controller])
+01:00.1 Audio device: NVIDIA Corporation TU116 High Definition Audio Controller (rev a1)
+01:00.2 USB controller: NVIDIA Corporation TU116 USB 3.1 Host Controller (rev a1) (prog-if 30 [XHCI])
+01:00.3 Serial bus controller [0c80]: NVIDIA Corporation TU116 USB Type-C UCSI Controller (rev a1)
+Kernel driver in use: nvidia-gpu
+Kernel modules: i2c_nvidia_gpu
+
+I also see I have an nvidia kernel module loaded:
+
+[root@fedora ~]# lsmod | grep -i nvidia
+i2c_nvidia_gpu 16384 0
+
+but perhaps that’s not the right one?
+
+I’ve attached the nvidia-bugs error report.
+
+nvidia-bug-report.log.gz (60.5 KB)
+
+Am I out of luck by virtue of having installed Fedora-34, or is there some way to make this work?
